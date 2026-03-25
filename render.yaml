@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pdf-lagbe
+    runtime: node
+    plan: free
+    buildCommand: chmod +x render-build.sh && ./render-build.sh
+    startCommand: node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: "true"
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
+      - key: PDF_TIMEOUT
+        value: "15000"
+      - key: MAX_CONCURRENT_PAGES
+        value: "3"
+      - key: RATE_LIMIT_MAX
+        value: "10"
+      - key: RATE_LIMIT_WINDOW
+        value: "60000"
