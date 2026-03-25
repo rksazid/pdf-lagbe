@@ -5,10 +5,11 @@ export function healthCheck(_req: Request, res: Response): void {
   const connected = browserService.isConnected();
   const memoryUsage = process.memoryUsage();
 
-  const status = connected ? 'healthy' : 'degraded';
-  const httpStatus = connected ? 200 : 503;
+  // Always return 200 — the server is healthy as long as it's running.
+  // Browser launches lazily on first PDF request; not being connected yet is normal.
+  const status = connected ? 'healthy' : 'idle';
 
-  res.status(httpStatus).json({
+  res.status(200).json({
     status,
     timestamp: new Date().toISOString(),
     uptime: Math.round(process.uptime()),

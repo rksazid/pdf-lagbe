@@ -23,7 +23,7 @@ describe('GET /', () => {
 describe('GET /health', () => {
   it('returns health status', async () => {
     const res = await request(app).get('/health');
-    expect(res.status).toBeOneOf([200, 503]);
+    expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('status');
     expect(res.body).toHaveProperty('uptime');
     expect(res.body).toHaveProperty('browser');
