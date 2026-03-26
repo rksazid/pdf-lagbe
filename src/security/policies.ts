@@ -67,4 +67,9 @@ export const DOMPURIFY_CONFIG = {
   ALLOW_UNKNOWN_PROTOCOLS: false,
   WHOLE_DOCUMENT: true,
   FORCE_BODY: false,
+  // Disable DOM-clobbering protection — it strips id attributes like "title",
+  // "body", "head" that shadow native document properties.  This is safe
+  // because our runtime sandbox (network isolation + API overrides) neutralises
+  // any actual DOM-clobbering exploitation vectors.
+  SANITIZE_DOM: false,
 };
