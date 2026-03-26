@@ -17,10 +17,12 @@ class PdfService {
       throw new RenderError('HTML content is empty after sanitization');
     }
 
-    // Step 2: Acquire page from browser pool
-    const page = await browserService.getPage();
-
+    // Step 2: Acquire page + render PDF (all inside try-catch so browser
+    // launch errors are caught and surfaced as RenderError, not generic 500)
+    let page;
     try {
+      page = await browserService.getPage();
+
       // Step 3: Apply security sandbox (network isolation + API overrides)
       await applySandbox(page);
 
@@ -78,7 +80,9 @@ class PdfService {
       throw new RenderError(err.message || 'Unknown rendering error');
     } finally {
       // Always release the page, even on error
-      await browserService.releasePage(page);
+      if (page) {
+        await browserService.releasePage(page);
+      }
     }
   }
 }

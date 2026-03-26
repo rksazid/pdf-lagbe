@@ -47,8 +47,6 @@ class BrowserService {
         '--disable-sync',
         '--disable-translate',
         '--no-first-run',
-        '--no-zygote',
-        '--single-process',
         '--disable-background-timer-throttling',
         '--js-flags=--max-old-space-size=256',
       ],

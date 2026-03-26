@@ -24,7 +24,7 @@ export const config: Config = {
   pdfTimeout: parseIntEnv('PDF_TIMEOUT', 10000),
   maxHtmlSize: parseIntEnv('MAX_HTML_SIZE', 2_097_152),
   defaultFormat: process.env.DEFAULT_FORMAT || 'A4',
-  maxConcurrentPages: parseIntEnv('MAX_CONCURRENT_PAGES', 3),
+  maxConcurrentPages: parseIntEnv('MAX_CONCURRENT_PAGES', 2),
   rateLimitWindow: parseIntEnv('RATE_LIMIT_WINDOW', 60000),
   rateLimitMax: parseIntEnv('RATE_LIMIT_MAX', 10),
   jsExecutionTimeout: parseIntEnv('JS_EXECUTION_TIMEOUT', 5000),
