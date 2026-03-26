@@ -27,16 +27,19 @@ class PdfService {
       await applySandbox(page);
 
       // Step 4: Set page content
-      // We use 'domcontentloaded' instead of 'networkidle0' because
-      // network interception blocks external requests, which would cause
-      // networkidle0 to behave unpredictably.
       await page.setContent(sanitizedHtml, {
         waitUntil: 'domcontentloaded',
         timeout: config.pdfTimeout,
       });
 
-      // Step 5: Wait for JS execution
-      // Wait for fonts to load (base64 embedded fonts)
+      // Step 5: Wait for external resources (CDN scripts, images, fonts)
+      // to finish loading.  Resolves instantly if there are no requests.
+      // Falls back gracefully on timeout so simple HTML isn't blocked.
+      await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 }).catch(() => {
+        logger.debug('Network idle timeout — proceeding with PDF generation');
+      });
+
+      // Wait for fonts to load (base64 embedded + CDN fonts)
       await page.evaluate(() => document.fonts.ready);
 
       // Wait for a specific DOM element if requested
