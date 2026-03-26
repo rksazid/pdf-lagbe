@@ -6,23 +6,14 @@ import { logger } from '../utils/logger.js';
 const allowedDomains = new Set(config.allowedCdnDomains);
 
 // Resource types permitted from CDN domains
-const ALLOWED_RESOURCE_TYPES = new Set([
-  'stylesheet',
-  'script',
-  'font',
-  'image',
-]);
+const CDN_RESOURCE_TYPES = new Set(['stylesheet', 'script', 'font']);
 
 // Cap URL length to limit data exfiltration via query strings
-const MAX_CDN_URL_LENGTH = 2048;
+const MAX_URL_LENGTH = 2048;
 
-function isAllowedCdnRequest(url: string, resourceType: string): boolean {
-  if (!ALLOWED_RESOURCE_TYPES.has(resourceType)) {
-    return false;
-  }
-
-  if (url.length > MAX_CDN_URL_LENGTH) {
-    logger.warn({ url: url.substring(0, 200) }, 'Blocked CDN request: URL too long');
+function isAllowedRequest(url: string, resourceType: string): boolean {
+  if (url.length > MAX_URL_LENGTH) {
+    logger.warn({ url: url.substring(0, 200) }, 'Blocked request: URL too long');
     return false;
   }
 
@@ -37,7 +28,17 @@ function isAllowedCdnRequest(url: string, resourceType: string): boolean {
     return false;
   }
 
-  return allowedDomains.has(parsed.hostname);
+  // Images allowed from any HTTPS host (clients embed their own server URLs)
+  if (resourceType === 'image') {
+    return true;
+  }
+
+  // Scripts, stylesheets, fonts only from trusted CDN domains
+  if (CDN_RESOURCE_TYPES.has(resourceType)) {
+    return allowedDomains.has(parsed.hostname);
+  }
+
+  return false;
 }
 
 /**
@@ -64,9 +65,9 @@ export async function applySandbox(page: Page): Promise<void> {
       return;
     }
 
-    // Allow requests to trusted CDN domains
-    if (isAllowedCdnRequest(url, request.resourceType())) {
-      logger.debug({ url, type: request.resourceType() }, 'Allowed CDN request');
+    // Allow images from any HTTPS host; scripts/styles/fonts from CDN domains
+    if (isAllowedRequest(url, request.resourceType())) {
+      logger.debug({ url, type: request.resourceType() }, 'Allowed external request');
       request.continue();
       return;
     }
