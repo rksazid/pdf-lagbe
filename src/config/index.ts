@@ -1,3 +1,5 @@
+import { DEFAULT_ALLOWED_CDN_DOMAINS } from '../security/policies.js';
+
 export interface Config {
   port: number;
   nodeEnv: string;
@@ -9,6 +11,7 @@ export interface Config {
   rateLimitMax: number;
   jsExecutionTimeout: number;
   isRender: boolean;
+  allowedCdnDomains: string[];
 }
 
 function parseIntEnv(key: string, fallback: number): number {
@@ -29,4 +32,13 @@ export const config: Config = {
   rateLimitMax: parseIntEnv('RATE_LIMIT_MAX', 10),
   jsExecutionTimeout: parseIntEnv('JS_EXECUTION_TIMEOUT', 5000),
   isRender: process.env.RENDER === 'true',
+  allowedCdnDomains: parseAllowedDomains(),
 };
+
+function parseAllowedDomains(): string[] {
+  const envDomains = process.env.ALLOWED_CDN_DOMAINS;
+  const extra = envDomains
+    ? envDomains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
+    : [];
+  return [...new Set([...DEFAULT_ALLOWED_CDN_DOMAINS, ...extra])];
+}

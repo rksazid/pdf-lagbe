@@ -1,13 +1,52 @@
 import type { Page } from 'puppeteer';
+import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+
+// Pre-compute a Set for O(1) domain lookups
+const allowedDomains = new Set(config.allowedCdnDomains);
+
+// Resource types permitted from CDN domains
+const ALLOWED_RESOURCE_TYPES = new Set([
+  'stylesheet',
+  'script',
+  'font',
+  'image',
+]);
+
+// Cap URL length to limit data exfiltration via query strings
+const MAX_CDN_URL_LENGTH = 2048;
+
+function isAllowedCdnRequest(url: string, resourceType: string): boolean {
+  if (!ALLOWED_RESOURCE_TYPES.has(resourceType)) {
+    return false;
+  }
+
+  if (url.length > MAX_CDN_URL_LENGTH) {
+    logger.warn({ url: url.substring(0, 200) }, 'Blocked CDN request: URL too long');
+    return false;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return false;
+  }
+
+  return allowedDomains.has(parsed.hostname);
+}
 
 /**
  * Applies a security sandbox to a Puppeteer page:
- * 1. Blocks ALL external network requests (strongest layer)
+ * 1. Allows trusted CDN domains; blocks all other external requests
  * 2. Overrides dangerous browser APIs before any page JS runs
  */
 export async function applySandbox(page: Page): Promise<void> {
-  // --- Layer 1: Network isolation via request interception ---
+  // --- Layer 1: Network interception with CDN allowlist ---
   await page.setRequestInterception(true);
 
   page.on('request', (request) => {
@@ -25,7 +64,14 @@ export async function applySandbox(page: Page): Promise<void> {
       return;
     }
 
-    // Block everything else — no external requests can leave
+    // Allow requests to trusted CDN domains
+    if (isAllowedCdnRequest(url, request.resourceType())) {
+      logger.debug({ url, type: request.resourceType() }, 'Allowed CDN request');
+      request.continue();
+      return;
+    }
+
+    // Block everything else
     logger.debug({ url, type: request.resourceType() }, 'Blocked network request');
     request.abort('blockedbyclient');
   });
@@ -122,19 +168,5 @@ export async function applySandbox(page: Page): Promise<void> {
       writable: false,
       configurable: false,
     });
-
-    // -- Block dynamic external script loading --
-
-    const originalCreateElement = document.createElement.bind(document);
-    document.createElement = function (tagName: string, options?: ElementCreationOptions) {
-      const el = originalCreateElement(tagName, options);
-      if (tagName.toLowerCase() === 'script') {
-        Object.defineProperty(el, 'src', {
-          set: () => { /* silently ignore — network interception blocks it anyway */ },
-          get: () => '',
-        });
-      }
-      return el;
-    };
   });
 }

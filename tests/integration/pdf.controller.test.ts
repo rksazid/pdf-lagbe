@@ -147,4 +147,24 @@ describe('POST /api/v1/pdf', () => {
 
     expect(res.status).toBe(200);
   }, 30000);
+
+  it('generates PDF with CDN stylesheet (Google Fonts)', async () => {
+    const res = await request(app)
+      .post('/api/v1/pdf')
+      .send({ html: valid.cdnStylesheetDocument(), waitForTimeout: 2000 })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
+
+  it('blocks exfiltration via long CDN URL', async () => {
+    const res = await request(app)
+      .post('/api/v1/pdf')
+      .send({ html: malicious.xssCdnExfiltration(), waitForTimeout: 500 })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
 });

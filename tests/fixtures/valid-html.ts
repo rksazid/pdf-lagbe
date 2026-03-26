@@ -102,6 +102,24 @@ export function canvasDocument(): string {
   `;
 }
 
+export function cdnStylesheetDocument(): string {
+  return `
+    <html>
+      <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+        <style>
+          body { font-family: 'Roboto', sans-serif; padding: 2rem; }
+          h1 { color: #333; }
+        </style>
+      </head>
+      <body>
+        <h1>CDN Font Test</h1>
+        <p>This text should use the Roboto font loaded from Google Fonts CDN.</p>
+      </body>
+    </html>
+  `;
+}
+
 export function svgDocument(): string {
   return `
     <html>

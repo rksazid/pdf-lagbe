@@ -1,3 +1,13 @@
+/** Trusted CDN domains allowed to load resources (JS, CSS, fonts, images). */
+export const DEFAULT_ALLOWED_CDN_DOMAINS: string[] = [
+  'cdn.jsdelivr.net',
+  'cdnjs.cloudflare.com',
+  'unpkg.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'cdn.tailwindcss.com',
+];
+
 /** Patterns flagged during static analysis of script content (logged, not blocked). */
 export const SUSPICIOUS_PATTERNS: RegExp[] = [
   /document\.cookie/gi,
