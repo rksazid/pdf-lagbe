@@ -1,7 +1,24 @@
-import puppeteer, { type Browser, type Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { ServiceUnavailableError } from '../utils/errors.js';
+
+const isVercel = !!process.env.VERCEL;
+
+const LAUNCH_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--disable-extensions',
+  '--disable-background-networking',
+  '--disable-default-apps',
+  '--disable-sync',
+  '--disable-translate',
+  '--no-first-run',
+  '--disable-background-timer-throttling',
+  '--js-flags=--max-old-space-size=256',
+];
 
 class BrowserService {
   private browser: Browser | null = null;
@@ -32,25 +49,27 @@ class BrowserService {
   }
 
   private async launch(): Promise<Browser> {
-    logger.info('Launching Chromium...');
+    logger.info({ isVercel }, 'Launching Chromium...');
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--disable-sync',
-        '--disable-translate',
-        '--no-first-run',
-        '--disable-background-timer-throttling',
-        '--js-flags=--max-old-space-size=256',
-      ],
-    });
+    let browser: Browser;
+
+    if (isVercel) {
+      // Vercel serverless: use @sparticuz/chromium (lightweight binary for Lambda)
+      const chromium = (await import('@sparticuz/chromium')).default;
+      const puppeteerCore = (await import('puppeteer-core')).default;
+      browser = await puppeteerCore.launch({
+        args: [...chromium.args, ...LAUNCH_ARGS],
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      }) as unknown as Browser;
+    } else {
+      // Render / local dev: use full puppeteer with bundled Chrome
+      const puppeteer = (await import('puppeteer')).default;
+      browser = await puppeteer.launch({
+        headless: true,
+        args: LAUNCH_ARGS,
+      });
+    }
 
     browser.on('disconnected', () => {
       logger.warn('Browser disconnected');

@@ -173,9 +173,51 @@ HTML Input
 
 Even if a malicious script bypasses Layer 1, Layer 2 disables dangerous APIs and Layer 3 blocks all unauthorized network traffic at the browser level.
 
-## Deployment (Render)
+## Deployment
 
-The project includes `render.yaml` for one-click deployment on Render.
+### Vercel (Recommended)
+
+The project includes `vercel.json` for deployment on Vercel. It uses `@sparticuz/chromium` (a lightweight Chromium binary optimized for serverless) instead of the full Puppeteer-bundled Chrome.
+
+**One-click deploy:**
+
+1. Push this repo to GitHub
+2. Go to [vercel.com/new](https://vercel.com/new) and import the repository
+3. Vercel auto-detects the config from `vercel.json` — no settings to change
+4. Click **Deploy**
+
+**Or via CLI:**
+
+```bash
+npm i -g vercel
+vercel
+```
+
+**Environment variables** (set in Vercel dashboard under Settings > Environment Variables):
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `PUPPETEER_SKIP_DOWNLOAD` | `true` | Yes (already in vercel.json) |
+| `MAX_CONCURRENT_PAGES` | `1` | Recommended for serverless |
+| `RATE_LIMIT_MAX` | `10` | Optional |
+
+**Vercel free tier limits:**
+
+| Resource | Limit |
+|----------|-------|
+| Function duration | 60 seconds |
+| Memory | 1024 MB |
+| Deployment size | 250 MB |
+
+**How it works:** On Vercel, the Express app runs as a serverless function via `api/index.ts`. The browser launches on the first request (cold start ~3-5s) and is reused for subsequent warm requests. `@sparticuz/chromium` provides a ~50 MB Chromium binary purpose-built for AWS Lambda (which Vercel uses under the hood).
+
+**Note:** Complex PDFs with multiple CDN scripts may take 5-10s on cold start. For best results, pass `"waitForTimeout": 2000` when using CDN libraries like Chart.js or QRCode.js.
+
+---
+
+### Render
+
+The project also includes `render.yaml` for deployment on Render's free tier (512 MB RAM, persistent server).
 
 ```yaml
 services:
@@ -200,6 +242,16 @@ services:
 ├── Safety margin        ~50 MB
 └── Remaining            ~150 MB headroom
 ```
+
+### Vercel vs Render
+
+| | Vercel (Serverless) | Render (Persistent Server) |
+|---|---|---|
+| Cold start | ~3-5s per cold invocation | Only on first request after deploy |
+| Concurrency | Auto-scales, 1 page per function | Fixed 2 concurrent pages |
+| Timeout | 60s (free), 300s (Pro) | 30s default |
+| Sleep | Functions sleep between requests | Spins down after 15 min idle |
+| Best for | Low traffic, bursty workloads | Steady traffic, faster responses |
 
 ## Development
 
@@ -265,6 +317,7 @@ Integration tests spin up a real browser — first run takes ~3-5s for cold star
 |---------|---------|
 | Express 4 | HTTP server and routing |
 | Puppeteer 24 | Headless Chrome for HTML-to-PDF |
+| @sparticuz/chromium | Serverless-optimized Chromium for Vercel |
 | DOMPurify 3 | HTML sanitization (XSS prevention) |
 | jsdom 25 | Server-side DOM for DOMPurify |
 | Zod 3 | Request validation with TypeScript inference |
