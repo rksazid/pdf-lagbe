@@ -1,7 +1,9 @@
 import { JSDOM } from 'jsdom';
-import DOMPurify from 'dompurify';
+import * as DOMPurifyPkg from 'dompurify';
 import { DOMPURIFY_CONFIG, SUSPICIOUS_PATTERNS } from '../security/policies.js';
 import { logger } from '../utils/logger.js';
+
+const DOMPurify = (DOMPurifyPkg as any).default ?? DOMPurifyPkg;
 
 class SanitizerService {
   private purify: ReturnType<typeof DOMPurify>;
