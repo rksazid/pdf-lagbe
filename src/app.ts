@@ -1,7 +1,14 @@
 import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import compression from 'compression';
+// helmet, cors, compression have CJS/ESM type declaration mismatches that
+// break on some build platforms (Vercel). Importing as `* as` and extracting
+// .default works with every moduleResolution setting.
+import * as helmetPkg from 'helmet';
+import * as corsPkg from 'cors';
+import * as compressionPkg from 'compression';
+
+const helmet = (helmetPkg as any).default ?? helmetPkg;
+const cors = (corsPkg as any).default ?? corsPkg;
+const compression = (compressionPkg as any).default ?? compressionPkg;
 import { requestLogger } from './middleware/request-logger.js';
 import { apiRateLimiter } from './middleware/rate-limiter.js';
 import { errorHandler } from './middleware/error-handler.js';
