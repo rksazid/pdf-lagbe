@@ -1,12 +1,14 @@
 {
   "version": 2,
-  "buildCommand": "npm run build && rm -rf src",
+  "framework": null,
+  "buildCommand": "npm run build",
   "installCommand": "PUPPETEER_SKIP_DOWNLOAD=true npm ci",
+  "outputDirectory": ".",
   "functions": {
     "api/index.js": {
       "memory": 1024,
       "maxDuration": 60,
-      "excludeFiles": "src/**"
+      "excludeFiles": "{src/**,tests/**,.puppeteer/**}"
     }
   },
   "rewrites": [
