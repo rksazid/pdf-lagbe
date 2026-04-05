@@ -1,6 +1,4 @@
-src
 tests
-tsconfig.json
 render.yaml
 render-build.sh
 .puppeteer
