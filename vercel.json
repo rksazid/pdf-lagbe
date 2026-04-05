@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "rm -rf dist && npm run build",
   "installCommand": "PUPPETEER_SKIP_DOWNLOAD=true npm ci",
   "functions": {
     "api/index.js": {
