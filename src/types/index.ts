@@ -1,3 +1,4 @@
+/** Internal options for pdfService.generate() — always receives html */
 export interface PdfGenerationOptions {
   html: string;
   format?: 'A4' | 'Letter' | 'A3' | 'Legal' | 'Tabloid';

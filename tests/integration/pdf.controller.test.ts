@@ -4,6 +4,7 @@ import { app } from '../../src/app.js';
 import { browserService } from '../../src/services/browser.service.js';
 import * as valid from '../fixtures/valid-html.js';
 import * as malicious from '../fixtures/malicious-html.js';
+import * as validMd from '../fixtures/valid-markdown.js';
 
 // PDF magic bytes: %PDF-
 const PDF_MAGIC = Buffer.from('%PDF-');
@@ -31,10 +32,10 @@ describe('GET /health', () => {
   });
 });
 
-describe('POST /api/v1/pdf', () => {
+describe('POST /api/v1/html-to-pdf', () => {
   it('generates PDF from simple HTML', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: valid.simpleDocument() })
       .timeout(30000);
 
@@ -45,7 +46,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('generates PDF with CSS styles', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: valid.styledDocument() })
       .timeout(30000);
 
@@ -55,7 +56,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('generates PDF with JS-modified DOM', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: valid.jsDocument(), waitForTimeout: 500 })
       .timeout(30000);
 
@@ -65,7 +66,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('generates PDF with canvas chart', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: valid.canvasDocument(), waitForTimeout: 500 })
       .timeout(30000);
 
@@ -75,7 +76,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('handles XSS in event handler without crashing', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: malicious.xssEventHandler() })
       .timeout(30000);
 
@@ -85,7 +86,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('handles fetch exfiltration attempt without crashing', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: malicious.xssFetch(), waitForTimeout: 500 })
       .timeout(30000);
 
@@ -95,7 +96,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('handles eval attempt without crashing', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: malicious.xssEval(), waitForTimeout: 500 })
       .timeout(30000);
 
@@ -105,7 +106,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('returns 400 for missing html field', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ format: 'A4' });
 
     expect(res.status).toBe(400);
@@ -114,7 +115,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('returns 400 for empty html', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: '' });
 
     expect(res.status).toBe(400);
@@ -123,7 +124,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('returns 400 for empty body', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({});
 
     expect(res.status).toBe(400);
@@ -131,7 +132,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('accepts landscape option', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: '<h1>Landscape</h1>', landscape: true })
       .timeout(30000);
 
@@ -141,7 +142,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('accepts Letter format', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: '<h1>Letter</h1>', format: 'Letter' })
       .timeout(30000);
 
@@ -150,7 +151,7 @@ describe('POST /api/v1/pdf', () => {
 
   it('generates PDF with CDN stylesheet (Google Fonts)', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: valid.cdnStylesheetDocument(), waitForTimeout: 2000 })
       .timeout(30000);
 
@@ -160,11 +161,85 @@ describe('POST /api/v1/pdf', () => {
 
   it('blocks exfiltration via long CDN URL', async () => {
     const res = await request(app)
-      .post('/api/v1/pdf')
+      .post('/api/v1/html-to-pdf')
       .send({ html: malicious.xssCdnExfiltration(), waitForTimeout: 500 })
       .timeout(30000);
 
     expect(res.status).toBe(200);
     expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
   }, 30000);
+});
+
+// --- Markdown-to-PDF ---
+
+describe('POST /api/v1/md-to-pdf', () => {
+  it('generates PDF from simple markdown', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ markdown: validMd.simpleMarkdown() })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('application/pdf');
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
+
+  it('generates PDF from markdown with GFM tables and task lists', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ markdown: validMd.gfmMarkdown() })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
+
+  it('generates PDF from markdown with syntax-highlighted code blocks', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ markdown: validMd.codeBlockMarkdown() })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
+
+  it('accepts markdown with PDF options (landscape, format)', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ markdown: '# Landscape Test', landscape: true, format: 'Letter' })
+      .timeout(30000);
+
+    expect(res.status).toBe(200);
+    expect(res.body.subarray(0, 5).toString()).toBe(PDF_MAGIC.toString());
+  }, 30000);
+
+  it('returns 400 for empty markdown', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ markdown: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns 400 for missing markdown field', async () => {
+    const res = await request(app)
+      .post('/api/v1/md-to-pdf')
+      .send({ format: 'A4' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+});
+
+// --- DOCX-to-PDF ---
+
+describe('POST /api/v1/docx-to-pdf', () => {
+  it('returns 400 when no file is uploaded', async () => {
+    const res = await request(app)
+      .post('/api/v1/docx-to-pdf');
+
+    expect(res.status).toBe(400);
+  });
 });

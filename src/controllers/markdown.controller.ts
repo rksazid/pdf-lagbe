@@ -1,12 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
-import { htmlPdfRequestSchema } from '../middleware/request-validator.js';
+import { mdPdfRequestSchema } from '../middleware/request-validator.js';
+import { markdownService } from '../services/markdown.service.js';
 import { pdfService } from '../services/pdf.service.js';
 
-export async function generatePdf(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function generateMarkdownPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const validated = htmlPdfRequestSchema.parse(req.body);
+    const validated = mdPdfRequestSchema.parse(req.body);
+    const html = markdownService.toHtml(validated.markdown);
 
-    const result = await pdfService.generate(validated);
+    const result = await pdfService.generate({ ...validated, html });
 
     res.set({
       'Content-Type': 'application/pdf',
